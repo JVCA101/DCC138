@@ -16,7 +16,7 @@ void main()
 	float b = 1.0 - length(fragPos.xy - vec2(0.5, -0.433));
 
 	if(fragPos.x > 0.0)
-		gl_FragColor = vec4(hsv2rgb(vec3(time, 1.0, 1.0)), 1.0);
+		gl_FragColor = vec4(hsv2rgb(vec3(time - r, 1.0, 1.0)), 1.0);
 	else
 		gl_FragColor = vec4(vec3(r, g, b), 1.0);
 }
