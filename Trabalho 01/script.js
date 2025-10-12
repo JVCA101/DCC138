@@ -3,6 +3,8 @@ import * as THREE from "https://threejs.org/build/three.module.js";
 var camera, scene, renderer, mesh;
 var clock = new THREE.Clock();
 
+const degreesToRadians = deg => deg * Math.PI / 180;
+
 init();
 
 async function init()
@@ -52,7 +54,7 @@ function onWindowResize()
 function animate()
 {
 	mesh.material.uniforms.time.value += Math.sin(clock.getDelta() * 0.5);
-    
+
 	// if(mesh.material.uniforms.time.value >= 2.0)
 	// 	mesh.material.uniforms.time.value -= 1.0;
 
