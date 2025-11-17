@@ -1,0 +1,44 @@
+# Blender 4.5.4 LTS MTL File: 'turret.blend'
+# www.blender.org
+
+newmtl turret_casing
+Ns 200.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd -o 0 -1 0 ../textures/turret_casing.jpeg
+
+newmtl turret_eye
+Ns 200.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd -o 0 -1 0 ../textures/turret_eye.png
+
+newmtl turret_frame01
+Ns 200.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd -o 0 -1 0 ../textures/turret_frame01.jpeg
+norm ../textures/turret_frame01_NM.png
+
+newmtl turret_frame02
+Ns 200.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd -o 0 -1 0 ../textures/turret_frame02.jpeg
+norm ../textures/turret_frame02_NM.png

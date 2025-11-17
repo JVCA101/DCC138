@@ -11,9 +11,9 @@ vec3 hsv2rgb(vec3 c)
 
 void main()
 {
-	float r = 1.0 - length(fragPos.xyz - vec3(0.5, 0.25, 0.0));
+	float r = 1.0 - length(fragPos.xyz - vec3( 0.5,  0.25, 0.0));
 	float g = 1.0 - length(fragPos.xyz - vec3(-0.5, -0.25, 0.0));
-    float b = 1.0 - length(fragPos.xyz - vec3(0.5, -0.25, 0.0));
+    float b = 1.0 - length(fragPos.xyz - vec3( 0.5, -0.25, 0.0));
 
 	// if(fragPos.x > 0.0)
 		gl_FragColor = vec4(hsv2rgb(vec3((r + b) + time, time, time)), 1.0);
