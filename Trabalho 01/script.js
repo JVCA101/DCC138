@@ -10,7 +10,7 @@ async function init()
 	const vert = await (await fetch("vert.glsl")).text();
 	const frag = await (await fetch("frag.glsl")).text();
 
-	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+	camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
 	camera.position.z = 1;
 
 	scene = new THREE.Scene();
@@ -51,10 +51,10 @@ function onWindowResize()
 
 function animate()
 {
-	mesh.material.uniforms.time.value += Math.sin(clock.getDelta() * 0.5);
-    
-	// if(mesh.material.uniforms.time.value >= 2.0)
-	// 	mesh.material.uniforms.time.value -= 1.0;
+	mesh.material.uniforms.time.value += Math.sin(clock.getDelta() * 0.75);
+
+	if(mesh.material.uniforms.time.value >= 3.14)
+		mesh.material.uniforms.time.value -= 3.14;
 
     mesh.rotation.y += 0.005;
 	
