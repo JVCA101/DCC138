@@ -1,9 +1,12 @@
 uniform float time;
 uniform float noise_multiplier;
+uniform vec3 cameraPos;
 
 varying vec3 fragPos;
 varying vec2 vUV;
 varying vec3 vNormal;
+varying vec3 vWorldPos;
+varying vec3 viewDir;
 
 // Based on https://thebookofshaders.com/13/
 float pseudo_random(in vec2 v)
@@ -35,7 +38,7 @@ float noise(in vec2 v)
     return outpart1 + outpart2 + outpart3;
 }
 
-#define OCTAVES 8
+#define OCTAVES 32
 float fbm(in vec2 v)
 {
     float value      = 0.0000000;
@@ -55,11 +58,26 @@ float fbm(in vec2 v)
 
 void main()
 {
-	vNormal = normalize(normal);
 	fragPos = vec3(modelMatrix * vec4(position, 1.0));
 	vUV = uv;
+
     vec3 pos = position;
-    pos.z += fbm(vUV*noise_multiplier + time*0.1);
+    vec2 texCoord = vUV * noise_multiplier + time * 0.1;
+    float wave1 = fbm(texCoord);
+    float wave2 = fbm(texCoord + vec2(0.01, 0.00));
+    float wave3 = fbm(texCoord + vec2(0.00, 0.01));
+    pos.z += wave1;
+
+    vec3 displaced_normal = normalize(vec3(wave1 - wave2, wave1 - wave3, 0.1));
+
+    // vec3 tangent = vec3(1.0, 0.0, 0.0);
+    // vec3 bitangent = cross(normal, tangent);
+    // vec3 displaced_pos = pos + normal * wave * 0.2;
+    // vec3 displaced_normal = normalize(cross(bitangent, tangent + vec3(0.0, fbm(vUV + vec2(0.01, 0.0)), 0.0)));
+	
+    vNormal = normalize(normalMatrix * displaced_normal);
+    vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
+	viewDir = normalize(cameraPos - fragPos);
 
 	gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 }

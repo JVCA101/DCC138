@@ -7,6 +7,10 @@ var water, ground, island, egyptian_ship, bizantine_ship, whale, penguin, koi;
 var clock = new THREE.Clock();
 var glb_loader = new GLTFLoader();
 
+const pixelRatio = window.devicePixelRatio;
+const loader = new THREE.TextureLoader();
+
+
 init();
 
 async function init()
@@ -19,32 +23,63 @@ async function init()
     const ground_vert = await (await fetch("ground_vert.glsl")).text();
 	const ground_frag = await (await fetch("ground_frag.glsl")).text();
 
+    // foam and noise map
+	const dudvMap = loader.load("assets/foam.png");
+	dudvMap.wrapS = dudvMap.wrapT = THREE.RepeatWrapping;
+
 	camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.set(0, 0, 50);
     
 	scene = new THREE.Scene();
 
     // ground and water geometry
-    const geometry = new THREE.PlaneGeometry(500, 500, 512, 512);
+    const water_geometry = new THREE.PlaneGeometry(200, 200, 1000, 1000);
+    const ground_geometry = new THREE.PlaneGeometry(200, 200, 100, 100);
+
+    const refractionTarget = new THREE.WebGLRenderTarget(
+        window.innerWidth, 
+        window.innerHeight,
+        { 
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.LinearFilter,
+            format: THREE.RGBAFormat
+        }
+    );
+
+    refractionTarget.depthTexture = new THREE.DepthTexture();
+    refractionTarget.depthTexture.format = THREE.DepthFormat;
+    refractionTarget.depthTexture.type = THREE.UnsignedShortType;
 
 
     // water
     const water_material = new THREE.ShaderMaterial({
 		uniforms:
 		{
-			time: { value: 0 },
-            noise_multiplier: { value: 750.0 }
+			time            : { value: 0 },
+            noise_multiplier: { value: 150.0 },
+            tDepth          : { value: new THREE.DepthTexture() },
+			foamColor       : { value: new THREE.Color(0xffffff) },
+			threshold       : { value: 0.100000000000 },
+			tDudv           : { value: dudvMap },
+            tRefraction     : { value: refractionTarget.texture },
+			resolution      : { value: new THREE.Vector2(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio) },
+            cameraPos       : { value: camera.position },
+			cameraNear      : { value: camera.near },
+			cameraFar       : { value: camera.far },
+            index_of_refract: { value: 1.333333333333 }
 		},
 		vertexShader:   water_vert,
 		fragmentShader: water_frag,
         transparent:    true
 	});
+
     water_material.side = THREE.DoubleSide;
-    water = new THREE.Mesh(geometry, water_material);
+    water = new THREE.Mesh(water_geometry, water_material);
     water.rotation.x = Math.PI / 2;
     water.position.y = -1;
 	scene.add(water);
 
+    window.refractionTarget = refractionTarget;
 
     // ground
     const ground_material = new THREE.ShaderMaterial({
@@ -57,11 +92,10 @@ async function init()
         fragmentShader: ground_frag
     });
     ground_material.side = THREE.BackSide;
-    ground = new THREE.Mesh(geometry, ground_material);
+    ground = new THREE.Mesh(ground_geometry, ground_material);
     ground.rotation.x = Math.PI / 2;
     ground.position.y = -20;
     scene.add(ground);
-
 
     // island
     const island_geometry = new THREE.CylinderGeometry(10, 30, 25, 64, 16);
@@ -89,9 +123,11 @@ async function init()
     let bizantine_ship_glb = await glb_loader.loadAsync("assets/dromon_medieval_ship.glb");
     bizantine_ship_glb.scene.traverse((child) => {
         if(child.isMesh)
-            child.material.side = THREE.DoubleSide;
-    })
+            child.material.depthWrite = true;
+    });
     bizantine_ship = bizantine_ship_glb.scene;
+    console.log(bizantine_ship);
+    console.log(water);
     bizantine_ship.scale.set(0.009, 0.009, 0.009);
     bizantine_ship.position.set(-5, -0.625, 2);
     bizantine_ship.rotation.y = Math.PI / 2;
@@ -106,7 +142,7 @@ async function init()
     whale.rotation.z = -Math.PI / 32;
     scene.add(whale);
 
-    // Pinguim
+    // Penguin
     let penguin_glb = await glb_loader.loadAsync("assets/penguin_swimming.glb");
     penguin = penguin_glb.scene;
     penguin.scale.set(0.25, 0.25, 0.25);
@@ -148,11 +184,30 @@ function onWindowResize()
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 	renderer.setSize(window.innerWidth, window.innerHeight);
+
+    if(window.refractionTarget)
+    {
+        window.refractionTarget.setSize(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
+    }
+
+    if(water && water.material)
+    {
+        water.material.uniforms.resolution.value.set(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
+    }
 }
 
 function animate()
 {
     water.material.uniforms.time.value += Math.min(clock.getDelta(), 0.05); // taxa minima de 50ms
-    controls.update();
+    water.material.uniforms.cameraPos.value.copy(camera.position);
+
+    water.visible = false;
+    renderer.setRenderTarget(window.refractionTarget);
+    renderer.render(scene, camera);
+
+    water.visible = true;
+    renderer.setRenderTarget(null);
 	renderer.render(scene, camera);
+    
+    controls.update();
 }
