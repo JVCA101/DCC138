@@ -2,17 +2,24 @@ import * as THREE from "https://threejs.org/build/three.module.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
+// general variables
 var camera, scene, renderer, controls;
-var water, ground, island, egyptian_ship, bizantine_ship, whale, penguin, koi;
-var clock = new THREE.Clock();
-var glb_loader = new GLTFLoader();
-
+var clock        = new THREE.Clock();
 const pixelRatio = window.devicePixelRatio;
-const loader = new THREE.TextureLoader();
+
+// variables for foam
+var depthMaterial, renderTarget;
+const dudvMap = loader.load("assets/foam.png");
+
+// objects in the scene
+var water, ground, island, egyptian_ship, bizantine_ship, whale, penguin, koi;
+
+// loaders
+const loader   = new THREE.TextureLoader();
+var glb_loader = new GLTFLoader();
 
 
 init();
-
 async function init()
 {
     // water shader
@@ -23,17 +30,32 @@ async function init()
     const ground_vert = await (await fetch("ground_vert.glsl")).text();
 	const ground_frag = await (await fetch("ground_frag.glsl")).text();
 
-    // foam and noise map
-	const dudvMap = loader.load("assets/foam.png");
-	dudvMap.wrapS = dudvMap.wrapT = THREE.RepeatWrapping;
-
-	camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+    // general variables set
+	camera   = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+	scene    = new THREE.Scene();
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+  	controls = new OrbitControls(camera, renderer.domElement);
     camera.position.set(0, 0, 50);
-    
-	scene = new THREE.Scene();
+	renderer.setClearColor("lightblue", 1);
+	renderer.setPixelRatio(window.devicePixelRatio);
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setAnimationLoop(animate);
+    renderer.shadowMap.enabled = true;
+	document.body.appendChild(renderer.domElement);controls.maxPolarAngle = Infinity;
+
+    // foam variables set
+    depthMaterial = new THREE.MeshDepthMaterial();
+	renderTarget  = new THREE.WebGLRenderTarget(window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio());
+    dudvMap.wrapS = dudvMap.wrapT        = THREE.RepeatWrapping;
+	depthMaterial.depthPacking           = THREE.RGBADepthPacking;
+    depthMaterial.blending               = THREE.NoBlending;
+	renderTarget.texture.minFilter       = THREE.NearestFilter;
+	renderTarget.texture.magFilter       = THREE.NearestFilter;
+	renderTarget.stencilBuffer           = false;
+	renderTarget.texture.generateMipmaps = false;
 
     // ground and water geometry
-    const water_geometry = new THREE.PlaneGeometry(200, 200, 1000, 1000);
+    const water_geometry  = new THREE.PlaneGeometry(200, 200, 1000, 1000);
     const ground_geometry = new THREE.PlaneGeometry(200, 200, 100, 100);
 
     const refractionTarget = new THREE.WebGLRenderTarget(
@@ -45,10 +67,10 @@ async function init()
             format: THREE.RGBAFormat
         }
     );
-
-    refractionTarget.depthTexture = new THREE.DepthTexture();
+    refractionTarget.depthTexture        = new THREE.DepthTexture();
     refractionTarget.depthTexture.format = THREE.DepthFormat;
-    refractionTarget.depthTexture.type = THREE.UnsignedShortType;
+    refractionTarget.depthTexture.type   = THREE.UnsignedShortType;
+    window.refractionTarget = refractionTarget;
 
 
     // water
@@ -56,12 +78,12 @@ async function init()
 		uniforms:
 		{
 			time            : { value: 0 },
-            noise_multiplier: { value: 150.0 },
-            tDepth          : { value: new THREE.DepthTexture() },
-			foamColor       : { value: new THREE.Color(0xffffff) },
+            noiseMultiplier : { value: 150.0000000000 },
+            tDepth          : { value: null },
+			foamColor       : { value: new THREE.Color(0xeeeeee) },
 			threshold       : { value: 0.100000000000 },
+            tRefraction     : { value: refractionTarget },
 			tDudv           : { value: dudvMap },
-            tRefraction     : { value: refractionTarget.texture },
 			resolution      : { value: new THREE.Vector2(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio) },
             cameraPos       : { value: camera.position },
 			cameraNear      : { value: camera.near },
@@ -72,14 +94,13 @@ async function init()
 		fragmentShader: water_frag,
         transparent:    true
 	});
-
     water_material.side = THREE.DoubleSide;
     water = new THREE.Mesh(water_geometry, water_material);
     water.rotation.x = Math.PI / 2;
     water.position.y = -1;
+	water.material.uniforms.tDepth.value = renderTarget.texture;
 	scene.add(water);
 
-    window.refractionTarget = refractionTarget;
 
     // ground
     const ground_material = new THREE.ShaderMaterial({
@@ -114,7 +135,7 @@ async function init()
 
     // ships
     let egyptian_ship_glb = await glb_loader.loadAsync("assets/egyptian_ship.glb");
-    egyptian_ship = egyptian_ship_glb.scene;
+    egyptian_ship         = egyptian_ship_glb.scene;
     egyptian_ship.scale.set(0.009, 0.009, 0.009);
     egyptian_ship.position.set(-5, -0.625, 2);
     egyptian_ship.rotation.y = Math.PI / 2;
@@ -126,8 +147,6 @@ async function init()
             child.material.depthWrite = true;
     });
     bizantine_ship = bizantine_ship_glb.scene;
-    console.log(bizantine_ship);
-    console.log(water);
     bizantine_ship.scale.set(0.009, 0.009, 0.009);
     bizantine_ship.position.set(-5, -0.625, 2);
     bizantine_ship.rotation.y = Math.PI / 2;
@@ -135,7 +154,7 @@ async function init()
 
     // Whale
     let whale_glb = await glb_loader.loadAsync("assets/whale.glb");
-    whale = whale_glb.scene;
+    whale         = whale_glb.scene;
     whale.scale.set(8, 8, 8);
     whale.position.set(8, -14, 8);
     whale.rotation.y = -Math.PI / 8;
@@ -144,7 +163,7 @@ async function init()
 
     // Penguin
     let penguin_glb = await glb_loader.loadAsync("assets/penguin_swimming.glb");
-    penguin = penguin_glb.scene;
+    penguin         = penguin_glb.scene;
     penguin.scale.set(0.25, 0.25, 0.25);
     penguin.position.set(-13, -11, -0.3);
     penguin.rotation.y = Math.PI * 0.8;
@@ -159,24 +178,13 @@ async function init()
     koi.rotation.x = Math.PI * 0.15;
     scene.add(koi);
 
+
     // directional light
     var dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
     scene.add(dirLight);
 
-
-	renderer = new THREE.WebGLRenderer({ antialias: true });
-
-	renderer.setClearColor("lightblue", 1);
-	renderer.setPixelRatio(window.devicePixelRatio);
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	renderer.setAnimationLoop(animate);
-	document.body.appendChild(renderer.domElement);
-
-  	controls = new OrbitControls(camera, renderer.domElement);
-	controls.maxPolarAngle = Infinity;
-
+    // resize window
 	window.addEventListener("resize", onWindowResize);
-
 }
 
 function onWindowResize()
@@ -185,26 +193,33 @@ function onWindowResize()
 	camera.updateProjectionMatrix();
 	renderer.setSize(window.innerWidth, window.innerHeight);
 
-    if(window.refractionTarget)
-    {
-        window.refractionTarget.setSize(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
-    }
+    renderTarget.setSize(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
 
-    if(water && water.material)
-    {
-        water.material.uniforms.resolution.value.set(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
-    }
+    if(window.refractionTarget)
+        window.refractionTarget.setSize(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
+
+    water.material.uniforms.resolution.value.set(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
 }
 
 function animate()
 {
-    water.material.uniforms.time.value += Math.min(clock.getDelta(), 0.05); // taxa minima de 50ms
+    // update time of water
+    water.material.uniforms.time.value = clock.getElapsedTime();
     water.material.uniforms.cameraPos.value.copy(camera.position);
 
+    // render scene without water for foam
     water.visible = false;
+	scene.overrideMaterial = depthMaterial;
+	renderer.setRenderTarget(renderTarget);
+    renderer.render(scene, camera);
+	renderer.setRenderTarget(null);
+	scene.overrideMaterial = null;
+    
+    // render scene without water for refraction
     renderer.setRenderTarget(window.refractionTarget);
     renderer.render(scene, camera);
 
+    // render entire scene
     water.visible = true;
     renderer.setRenderTarget(null);
 	renderer.render(scene, camera);
