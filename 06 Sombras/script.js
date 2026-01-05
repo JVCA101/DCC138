@@ -3,10 +3,23 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 var camera, scene, renderer, spotTarget, dirTarget, rot, box, controls;
 
 init();
+
+function fixChildren(mesh, material)
+{
+    if(mesh.isMesh)
+        console.log(mesh);
+    if(mesh.geometry)
+        mesh.geometry.computeTangents();
+    if(mesh.material)
+        mesh.material = material;
+    for(let i = 0; i < mesh.children.length; i++)
+        fixChildren(mesh.children[i], material);
+}
 
 async function init()
 {
@@ -18,6 +31,14 @@ async function init()
 	scene = new THREE.Scene();
 	scene.add(camera);
 	scene.add(new THREE.AmbientLight(0x777777));
+
+    const gltfLoader = new GLTFLoader();
+    const gltf = await gltfLoader.loadAsync("assets/ship_in_a_bottle.glb");
+    var mesh = gltf.scene;
+    mesh.scale.set(0.5, 0.5, 0.5);
+    mesh.rotation.y -= 1.57;
+    mesh.position.set(0, 0.65, 0);
+
 
 	const textureLoader = new THREE.TextureLoader();
 	const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -50,6 +71,9 @@ async function init()
 		lights: true
 	});
 
+    fixChildren(mesh, material);
+    scene.add(mesh);
+
 	rot = 0;
 	dirTarget = new THREE.Object3D();
 	spotTarget = new THREE.Object3D();
@@ -60,7 +84,7 @@ async function init()
 	box = new THREE.Mesh(geometry, material.clone());
 	box.position.set(0, 0.5, 0);
 	box.castShadow = true;
-	scene.add(box);
+	// scene.add(box);
 
 	const planeGeo = new THREE.PlaneGeometry(10, 10);
 	const planeMat = material.clone();

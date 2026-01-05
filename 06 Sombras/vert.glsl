@@ -16,7 +16,11 @@ void main()
 	#include <begin_vertex>
 	#include <project_vertex>
 	#include <worldpos_vertex>
+    #include <morphtarget_vertex>
 	#include <shadowmap_vertex>
+    #include <skinbase_vertex>
+    #include <skinning_pars_vertex>
+    #include <skinning_pars_vertex>
 
 	vUV = uv;
 	mat3 normalMatrix = mat3(transpose(inverse(modelViewMatrix)));
