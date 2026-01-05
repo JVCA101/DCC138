@@ -7,16 +7,16 @@ var camera, scene, renderer, controls;
 var clock        = new THREE.Clock();
 const pixelRatio = window.devicePixelRatio;
 
+// loaders
+const loader   = new THREE.TextureLoader();
+var glb_loader = new GLTFLoader();
+
 // variables for foam
 var depthMaterial, renderTarget;
 const dudvMap = loader.load("assets/foam.png");
 
 // objects in the scene
 var water, ground, island, egyptian_ship, bizantine_ship, whale, penguin, koi;
-
-// loaders
-const loader   = new THREE.TextureLoader();
-var glb_loader = new GLTFLoader();
 
 
 init();

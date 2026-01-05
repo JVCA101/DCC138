@@ -41,9 +41,6 @@ float fresnel(float amount, vec3 normal, vec3 view) {
 void main()
 {
     // displacement calculation
-    vec2 displacement = texture2d( tDudv, ( vUV * 2.0 ) - time * 0.05 ).rg;
-    displacement = ( ( displacement * 2.0 ) - 1.0 );
-
     // screenUV calculation
     vec2 screen_UV = gl_FragCoord.xy / resolution;
 
@@ -55,6 +52,8 @@ void main()
     vec3  refracted      = refract(eye_vec, vNormal, 1.00000000 / indexOfRefract);
     float view_angle     = dot(normalize(vNormal), normalize(viewDir));
     float refraction_str = clamp(view_angle * 2.0, 0.1, 0.5);
+    vec2 displacement = texture2D( tDudv, ( vUV * 2.0 ) - time * 0.05 ).rg;
+    displacement = ( ( displacement * 2.0 ) - 1.0 );
     vec2  refracted_UV   = screen_UV + refracted.xy * refraction_str + displacement;
     vec4  refract_color  = texture2D(tRefraction, refracted_UV);
     float fresnel_thres  = fresnel(2.0, vNormal, viewDir);

@@ -63,6 +63,7 @@ float fbm(in vec2 v)
 void main()
 {
     // create 3 waves to create a more realistic effect
+	vUV                    = uv;
     vec2  texCoord         = vUV * noiseMultiplier + time * 0.1;
     float wave1            = fbm(texCoord);
     float wave2            = fbm(texCoord + vec2(0.01, 0.00));
@@ -71,7 +72,6 @@ void main()
 
     // values to be passed to water_frag.glsl
 	fragPos   = vec3(modelMatrix * vec4(position, 1.0));
-	vUV       = uv;
     vNormal   = normalize(normalMatrix * displaced_normal);
     vec3 pos  = position;
     pos.z    += wave1;
